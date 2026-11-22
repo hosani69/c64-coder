@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="dark">
+<title>C64 Coder</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">▚</span> C64 Coder</div>
+  <div id="status" class="status" aria-live="polite"></div>
+</header>
+
+<main>
+  <!-- AI ------------------------------------------------------------------>
+  <section id="tab-ai" class="tab active">
+    <div id="chat" class="chat">
+      <div class="msg system">
+        <p>Describe a Commodore 64 program and Claude will write it. Try:</p>
+        <div class="chips">
+          <button class="chip" data-prompt="A bouncing ball that changes the border color every time it hits a wall">Bouncing ball</button>
+          <button class="chip" data-prompt="A number guessing game from 1 to 100 with a high score">Guessing game</button>
+          <button class="chip" data-prompt="Play a short melody on the SID chip while showing the note names">SID melody</button>
+          <button class="chip" data-prompt="A sprite of a spaceship that I move with the joystick in port 2">Joystick sprite</button>
+          <button class="chip" data-prompt="In 6502 assembly: a fast rainbow raster bar effect in the border">Raster bars (asm)</button>
+        </div>
+      </div>
+    </div>
+    <form id="prompt-form" class="prompt-form">
+      <div class="row">
+        <select id="lang-pref" aria-label="Language">
+          <option value="auto">Any language</option>
+          <option value="basic">BASIC V2</option>
+          <option value="asm">6502 assembly</option>
+        </select>
+        <label class="check"><input type="checkbox" id="use-current" checked> Edit current program</label>
+        <button type="button" id="new-chat" class="ghost small">New chat</button>
+      </div>
+      <div class="row">
+        <textarea id="prompt" rows="2" placeholder="Describe your program…"></textarea>
+        <button type="submit" id="send" class="primary">Write</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- CODE ---------------------------------------------------------------->
+  <section id="tab-code" class="tab">
+    <div class="toolbar">
+      <input id="prog-name" maxlength="16" value="MY PROGRAM" aria-label="Program name" spellcheck="false">
+      <select id="code-kind" aria-label="Code type">
+        <option value="basic">BASIC V2</option>
+        <option value="asm">6502 ASM</option>
+      </select>
+      <button id="run-btn" class="primary">▶ Run</button>
+    </div>
+    <textarea id="code" class="code" spellcheck="false" autocapitalize="characters" autocomplete="off" autocorrect="off" wrap="off"></textarea>
+    <div id="code-msg" class="code-msg"></div>
+  </section>
+
+  <!-- RUN ----------------------------------------------------------------->
+  <section id="tab-run" class="tab">
+    <div class="screen-wrap">
+      <canvas id="screen" width="384" height="272" aria-label="C64 screen"></canvas>
+      <textarea id="kbd" class="kbd-capture" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="C64 keyboard input"></textarea>
+    </div>
+    <div class="run-info">
+      <span id="run-mode"></span>
+      <span id="fps"></span>
+    </div>
+    <div id="run-error" class="run-error hidden">
+      <span id="run-error-text"></span>
+      <button id="fix-btn" class="primary small">Fix with Claude</button>
+    </div>
+    <div class="keys" id="keys">
+      <button data-key="KBD" class="wide">⌨ Type</button>
+      <button data-key="STOP">RUN/STOP</button>
+      <button data-key="RETURN">RETURN</button>
+      <button data-key="DEL">DEL</button>
+      <button data-key="CLR">CLR</button>
+      <button data-key="HOME">HOME</button>
+      <button data-key="CRSR_UP">↑</button>
+      <button data-key="CRSR_DOWN">↓</button>
+      <button data-key="CRSR_LEFT">←</button>
+      <button data-key="CRSR_RIGHT">→</button>
+      <button data-key=" ">SPACE</button>
+      <button data-key="F1">F1</button>
+      <button data-key="F3">F3</button>
+      <button data-key="F5">F5</button>
+      <button data-key="F7">F7</button>
+      <button data-key="RESTORE">RESTORE</button>
+    </div>
+    <div class="run-actions">
+      <button id="joy-toggle" class="ghost">🕹 Joystick</button>
+      <button id="ask-screen" class="ghost">Ask Claude about screen</button>
+      <button id="reset-btn" class="ghost">Reset C64</button>
+      <button id="pause-btn" class="ghost">Pause</button>
+    </div>
+    <div id="joystick" class="joystick hidden">
+      <div class="dpad">
+        <button data-joy="up" class="up">▲</button>
+        <button data-joy="left" class="left">◀</button>
+        <button data-joy="right" class="right">▶</button>
+        <button data-joy="down" class="down">▼</button>
+      </div>
+      <div class="joy-side">
+        <select id="joy-port" aria-label="Joystick port"><option value="1">Port 2</option><option value="0">Port 1</option></select>
+        <button data-joy="fire" class="fire">FIRE</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPORT -------------------------------------------------------------->
+  <section id="tab-export" class="tab">
+    <div class="card">
+      <h2>Export</h2>
+      <p class="hint">Files work on a real Commodore 64 through an SD2IEC, Kung Fu Flash, 1541 Ultimate, Pi1541 or a disk transfer cable, and in emulators such as VICE.</p>
+      <div class="export-grid">
+        <button id="exp-txt" class="primary">Listing .txt</button>
+        <button id="exp-prg" class="primary">Program .prg</button>
+        <button id="exp-d64" class="primary">Disk image .d64</button>
+      </div>
+      <label class="check"><input type="checkbox" id="d64-source" checked> Put the source listing on the disk too (as a SEQ file)</label>
+      <p class="hint" id="exp-info"></p>
+    </div>
+    <div class="card">
+      <h2>Import</h2>
+      <p class="hint">Open a .prg, .d64, .bas, .asm or .txt file.</p>
+      <input type="file" id="import-file" accept=".prg,.d64,.txt,.bas,.asm,.s,.a65,application/octet-stream,text/plain">
+      <div id="d64-files" class="list"></div>
+    </div>
+    <div class="card">
+      <h2>My programs</h2>
+      <div class="row">
+        <button id="save-prog" class="primary small">Save current program</button>
+      </div>
+      <div id="saved-list" class="list"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS ------------------------------------------------------------>
+  <section id="tab-settings" class="tab">
+    <div class="card">
+      <h2>Claude</h2>
+      <label class="field">API key
+        <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="hint">Create a key at console.anthropic.com. It is stored only on this device and sent only to api.anthropic.com.</p>
+      <label class="field">Model
+        <select id="model">
+          <option value="claude-opus-5-5">Claude Opus 5.5 (best)</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster)</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option>
+          <option value="claude-fable-5-2">Claude Fable 5.2 (most capable)</option>
+        </select>
+      </label>
+      <label class="field">Effort
+        <select id="effort">
+          <option value="low">Low (quick)</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="xhigh">Extra high (slow, careful)</option>
+        </select>
+      </label>
+    </div>
+    <div class="card">
+      <h2>Emulator ROMs</h2>
+      <p id="rom-status" class="hint"></p>
+      <p class="hint">The app ships with the free MEGA65 Open ROMs (LGPL-3). Their BASIC is unfinished, so BASIC programs run in the app's built-in BASIC V2 interpreter on top of the emulated machine. For the most faithful results, load your own original C64 ROM files (basic, kernal and chargen, e.g. from a VICE installation or C64 Forever). You can pick all three at once.</p>
+      <input type="file" id="rom-files" multiple accept=".bin,.rom,application/octet-stream">
+      <div class="row"><button id="rom-reset" class="ghost small">Use the built-in Open ROMs</button></div>
+    </div>
+    <div class="card">
+      <h2>Emulation</h2>
+      <label class="check"><input type="checkbox" id="sound" checked> Sound (SID)</label>
+      <label class="check"><input type="checkbox" id="turbo"> Turbo speed (4×)</label>
+      <label class="check"><input type="checkbox" id="force-interp"> Always use the built-in BASIC interpreter</label>
+    </div>
+    <div class="card about">
+      <h2>About</h2>
+      <p class="hint">C64 Coder is open source. Commodore 64 is a trademark of its respective owner; this app is not affiliated with it. The Open ROMs are © the MEGA65 Open ROMs authors, LGPL-3.0 (see roms/ in the app). The Claude SDK is Apache-2.0 / MIT.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button data-tab="ai" class="active" role="tab"><span>✦</span>Claude</button>
+  <button data-tab="code" role="tab"><span>≡</span>Code</button>
+  <button data-tab="run" role="tab"><span>▶</span>Run</button>
+  <button data-tab="export" role="tab"><span>⬇</span>Export</button>
+  <button data-tab="settings" role="tab"><span>⚙</span>Settings</button>
+</nav>
+
+<script src="vendor/anthropic-sdk.js"></script>
+<script src="c64/basic.js"></script>
+<script src="c64/asm.js"></script>
+<script src="c64/d64.js"></script>
+<script src="c64/cpu6502.js"></script>
+<script src="c64/sid.js"></script>
+<script src="c64/machine.js"></script>
+<script src="c64/basic-interp.js"></script>
+<script src="c64/ai.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
