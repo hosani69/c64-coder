@@ -37,6 +37,19 @@ on your phone and is sent only to `api.anthropic.com`.
 | App UI | `www/index.html`, `app.js`, `app.css` | Claude chat, code editor, emulator screen with on-screen keys and joystick, export/import, saved programs. |
 | Android shell | `app/src/main/java/.../MainActivity.kt` | WebView with `WebViewAssetLoader`, Save-as dialog for exports, file picker for imports. |
 
+### Speed, screen and controllers
+
+- The emulated C64 always runs at real PAL speed: 50.12 frames and 985,248 CPU
+  cycles per second, independent of the phone's display refresh rate. On a slow
+  phone, drawing is skipped rather than slowing the C64 down.
+- **Settings > Screen frame rate** redraws the picture at 50, 16 or 8 fps
+  (8 saves battery); the C64's own timing stays the same.
+- The emulator screen resizes to stay fully visible: on top in portrait, on the
+  left with the controls beside it in landscape.
+- Bluetooth or USB game controllers act as the C64 joystick: d-pad or left stick
+  to move, A/B/X/Y, shoulder buttons or triggers to fire, Start = RETURN,
+  Select = RUN/STOP. Choose port 1 or 2 under **Joystick**.
+
 ### About the ROMs
 
 Commodore's original ROMs are copyrighted, so the app ships with the free

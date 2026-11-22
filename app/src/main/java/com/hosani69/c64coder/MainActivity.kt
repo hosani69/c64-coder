@@ -6,6 +6,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
+import android.view.InputDevice
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
@@ -34,6 +37,14 @@ class MainActivity : ComponentActivity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingSave: ByteArray? = null
     private var pendingSaveName: String = ""
+
+    // Game controller state, sent to the page as a C64 joystick bitmask
+    // (1 up, 2 down, 4 left, 8 right, 16 fire).
+    private var padButtons = 0
+    private var padAxes = 0
+    private var padStart = false
+    private var padSelect = false
+    private var lastSent = -1
 
     private val openFile = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val cb = fileCallback
@@ -139,6 +150,74 @@ class MainActivity : ComponentActivity() {
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)
         else webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html")
+    }
+
+    private fun isController(event: android.view.InputEvent): Boolean {
+        val src = event.source
+        return (src and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+            (src and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        val isPadKey = KeyEvent.isGamepadButton(code) ||
+            (isController(event) && code in intArrayOf(
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_CENTER
+            ))
+        if (!isPadKey) return super.dispatchKeyEvent(event)
+        val down = event.action == KeyEvent.ACTION_DOWN
+        if (event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP) return true
+        when (code) {
+            KeyEvent.KEYCODE_BUTTON_START -> padStart = down
+            KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_MODE -> padSelect = down
+            else -> {
+                val bit = when (code) {
+                    KeyEvent.KEYCODE_DPAD_UP -> 1
+                    KeyEvent.KEYCODE_DPAD_DOWN -> 2
+                    KeyEvent.KEYCODE_DPAD_LEFT -> 4
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> 8
+                    else -> 16          // A, B, X, Y, shoulders, triggers, stick clicks, d-pad center
+                }
+                padButtons = if (down) padButtons or bit else padButtons and bit.inv()
+            }
+        }
+        sendPad()
+        return true
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (!isController(event) || event.action != MotionEvent.ACTION_MOVE) {
+            return super.dispatchGenericMotionEvent(event)
+        }
+        val x = event.getAxisValue(MotionEvent.AXIS_X)
+        val y = event.getAxisValue(MotionEvent.AXIS_Y)
+        val hx = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+        val hy = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+        val trig = maxOf(
+            event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
+            event.getAxisValue(MotionEvent.AXIS_GAS), event.getAxisValue(MotionEvent.AXIS_BRAKE)
+        )
+        var bits = 0
+        if (y < -0.5f || hy < -0.5f) bits = bits or 1
+        if (y > 0.5f || hy > 0.5f) bits = bits or 2
+        if (x < -0.5f || hx < -0.5f) bits = bits or 4
+        if (x > 0.5f || hx > 0.5f) bits = bits or 8
+        if (trig > 0.5f) bits = bits or 16
+        padAxes = bits
+        sendPad()
+        return true
+    }
+
+    private fun sendPad() {
+        val bits = padButtons or padAxes
+        val state = bits or (if (padStart) 32 else 0) or (if (padSelect) 64 else 0)
+        if (state == lastSent) return
+        lastSent = state
+        webView.evaluateJavascript(
+            "window.nativeGamepad && window.nativeGamepad($bits, ${if (padStart) 1 else 0}, ${if (padSelect) 1 else 0})",
+            null
+        )
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

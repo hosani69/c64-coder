@@ -60,13 +60,17 @@
   </section>
 
   <!-- RUN ----------------------------------------------------------------->
-  <section id="tab-run" class="tab">
-    <div class="screen-wrap">
-      <canvas id="screen" width="384" height="272" aria-label="C64 screen"></canvas>
-      <textarea id="kbd" class="kbd-capture" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="C64 keyboard input"></textarea>
+  <section id="tab-run" class="tab run-tab">
+    <div class="screen-area" id="screen-area">
+      <div class="screen-wrap" id="screen-wrap">
+        <canvas id="screen" width="384" height="272" aria-label="C64 screen"></canvas>
+        <textarea id="kbd" class="kbd-capture" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="C64 keyboard input"></textarea>
+      </div>
     </div>
+    <div class="run-controls">
     <div class="run-info">
       <span id="run-mode"></span>
+      <span id="pad-status" class="hidden">🎮 Controller</span>
       <span id="fps"></span>
     </div>
     <div id="run-error" class="run-error hidden">
@@ -108,6 +112,8 @@
         <select id="joy-port" aria-label="Joystick port"><option value="1">Port 2</option><option value="0">Port 1</option></select>
         <button data-joy="fire" class="fire">FIRE</button>
       </div>
+    </div>
+    <p class="hint">Bluetooth game controllers work as the C64 joystick: d-pad or left stick to move, A/B/X/Y or shoulder buttons to fire, Start = RETURN, Select = RUN/STOP. Pick port 1 or 2 under Joystick.</p>
     </div>
   </section>
 
@@ -173,6 +179,14 @@
     </div>
     <div class="card">
       <h2>Emulation</h2>
+      <label class="field">Screen frame rate
+        <select id="display-fps">
+          <option value="50">50 fps (smooth, like a PAL C64)</option>
+          <option value="16">16 fps</option>
+          <option value="8">8 fps (saves battery)</option>
+        </select>
+      </label>
+      <p class="hint">The C64 itself always runs at real PAL speed (50 frames, 985,248 CPU cycles per second), so programs, music and games keep their correct timing. This setting only changes how often the picture is redrawn.</p>
       <label class="check"><input type="checkbox" id="sound" checked> Sound (SID)</label>
       <label class="check"><input type="checkbox" id="turbo"> Turbo speed (4×)</label>
       <label class="check"><input type="checkbox" id="force-interp"> Always use the built-in BASIC interpreter</label>
